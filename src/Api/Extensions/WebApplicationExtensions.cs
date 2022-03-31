@@ -22,7 +22,11 @@ internal static class WebApplicationExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
-        app.MapHealthChecks("/hc");
+        app.MapHealthChecks("/hc/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            Predicate = _ => false
+        });
+        app.MapHealthChecks("/hc/ready");
         app.MapControllers();
 
         return app;

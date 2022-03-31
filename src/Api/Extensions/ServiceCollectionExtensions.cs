@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -8,7 +9,7 @@ namespace WebApplication1.Extensions;
 internal static class ServiceCollectionExtensions
 {
     // Add services to the container.
-    public static IServiceCollection ConfigureServices(this IServiceCollection services)
+    public static IServiceCollection ConfigureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddCustomAuthentication();
 
@@ -43,7 +44,8 @@ internal static class ServiceCollectionExtensions
         //    //options.OperationFilter<AuthorizeCheckOperationFilter>();
         //});
 
-        services.AddHealthChecks();
+        services.AddHealthChecks()
+            .AddSqlServer(configuration["ConnectionStrings:DefaultConnection"]);
 
         return services;
     }

@@ -12,7 +12,7 @@ try
     var builder = WebApplication.CreateBuilder(args);
     builder.Logging.ClearProviders();
     builder.Host.UseSerilog((ctx, sp, lc) => lc.WithCustomConfiguration(sp, ctx.Configuration));
-    builder.Services.ConfigureServices();
+    builder.Services.ConfigureServices(builder.Configuration);
     var app = builder.Build();
     app.Configure();
 
