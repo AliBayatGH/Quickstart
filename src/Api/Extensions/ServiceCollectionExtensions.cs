@@ -43,6 +43,7 @@ internal static class ServiceCollectionExtensions
         //    //options.OperationFilter<AuthorizeCheckOperationFilter>();
         //});
 
+        services.AddHealthChecks();
 
         return services;
     }

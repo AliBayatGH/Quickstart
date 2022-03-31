@@ -22,6 +22,7 @@ internal static class WebApplicationExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        app.MapHealthChecks("/hc");
         app.MapControllers();
 
         return app;
