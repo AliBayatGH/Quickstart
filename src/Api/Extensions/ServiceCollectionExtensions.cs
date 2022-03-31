@@ -44,9 +44,8 @@ internal static class ServiceCollectionExtensions
         //    //options.OperationFilter<AuthorizeCheckOperationFilter>();
         //});
 
-        services.AddHealthChecks()
-            .AddSqlServer(configuration["ConnectionStrings:DefaultConnection"]);
-
+        services.AddCustomHealthChecks(configuration);
+            
         return services;
     }
 }
