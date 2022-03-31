@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using HealthChecks.UI.Client;
+using Serilog;
 
 namespace WebApplication1.Extensions;
 
@@ -24,9 +25,13 @@ internal static class WebApplicationExtensions
 
         app.MapHealthChecks("/hc/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
         {
-            Predicate = _ => false
+            Predicate = _ => false,
+            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
         });
-        app.MapHealthChecks("/hc/ready");
+        app.MapHealthChecks("/hc/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+        });
         app.MapControllers();
 
         return app;
