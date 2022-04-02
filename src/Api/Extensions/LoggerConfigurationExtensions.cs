@@ -1,35 +1,38 @@
-﻿using Serilog.Exceptions.Core;
-using Serilog;
-using System.Reflection;
-using System.Security.Claims;
+﻿using Serilog;
+using Serilog.Enrichers.Span;
+using Serilog.Events;
 using Serilog.Exceptions;
-using Serilog.Sinks.MSSqlServer;
-using Serilog.Enrichers.AspnetcoreHttpcontext;
+using Serilog.Exceptions.Core;
 using Serilog.Exceptions.EntityFrameworkCore.Destructurers;
-using System.Data.SqlClient;
 using Serilog.Filters;
 using Serilog.Sinks.Elasticsearch;
-using Serilog.Enrichers.Span;
+using Serilog.Sinks.MSSqlServer;
+using System.Data.SqlClient;
+using System.Reflection;
+using System.Security.Claims;
 
 namespace WebApplication1.Extensions;
 public static class LoggerConfigurationExtensions
 {
-    public static LoggerConfiguration WithCustomConfiguration(this LoggerConfiguration loggerConfig, IServiceProvider serviceProvider, IConfiguration config)
+    public static LoggerConfiguration WithCustomConfiguration(this LoggerConfiguration loggerConfig, IServiceProvider serviceProvider, HostBuilderContext hostBuilderContext)
     {
-        string rollingFileName = config["Logging:RollingFileName"];
-        string sqlServerConnectionString = config["Logging:SQLServerConnectionString"];
-        string elasticsearchUri = config["Logging:ElasticsearchUri"];
-        string elasticIndexRoot = config["Logging:ElasticIndexFormatRoot"];
-        string elasticBufferRoot = config["Logging:ElasticBufferRoot"];
-
-        ColumnOptions columnOptions = new();
-        columnOptions.Properties.DataType = System.Data.SqlDbType.Xml;
+        IConfiguration configuration = hostBuilderContext.Configuration;
+        string rollingFileName = configuration["Logging:RollingFileName"];
+        string sqlServerConnectionString = configuration["Logging:SQLServerConnectionString"];
+        string elasticsearchUri = configuration["Logging:ElasticsearchUri"];
+        string elasticIndexRoot = configuration["Logging:ElasticIndexFormatRoot"];
+        string elasticBufferRoot = configuration["Logging:ElasticBufferRoot"];
 
         string? assemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
 
+
+        var env = hostBuilderContext.HostingEnvironment;
         loggerConfig.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}")
         .Enrich.FromLogContext()
-        .ReadFrom.Configuration(config) // minimum levels defined per project in json files 
+        .Enrich.WithProperty("ApplicationName", env.ApplicationName)
+        .Enrich.WithProperty("EnvironmentName", env.EnvironmentName)
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        .ReadFrom.Configuration(configuration) // minimum levels defined per project in json files 
         .Enrich.With<ActivityEnricher>()
         .Enrich.WithMachineName()
         .Enrich.WithProperty("Assembly", assemblyName);
@@ -42,8 +45,13 @@ public static class LoggerConfigurationExtensions
 
         if (!string.IsNullOrWhiteSpace(rollingFileName))
             loggerConfig.WriteTo.File(rollingFileName);
+
         if (!string.IsNullOrWhiteSpace(sqlServerConnectionString))
+        {
+            ColumnOptions columnOptions = new();
+            columnOptions.Properties.DataType = System.Data.SqlDbType.Xml;
             loggerConfig.WriteTo.MSSqlServer(connectionString: GetConnectionString(sqlServerConnectionString), sinkOptions: new MSSqlServerSinkOptions { TableName = "LogEvents", AutoCreateSqlTable = true }, columnOptions: columnOptions);
+        }
 
         if (!string.IsNullOrWhiteSpace(elasticsearchUri))
             loggerConfig.WriteTo.Logger(lc =>
@@ -52,7 +60,7 @@ public static class LoggerConfigurationExtensions
                         {
                             AutoRegisterTemplate = true,
                             AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv6,
-                            IndexFormat = elasticIndexRoot + "-{0:yyyy.MM.dd}",
+                            IndexFormat = elasticIndexRoot + "hasti-{0:yyyy.MM.dd}",
                             InlineFields = true
                         }))
                 .WriteTo.Logger(lc =>
@@ -71,6 +79,7 @@ public static class LoggerConfigurationExtensions
     private static ContextInformation GetContextInfo(IHttpContextAccessor httpContextAccessor)
     {
         HttpContext httpContext = httpContextAccessor.HttpContext;
+
         if (httpContext == null)
         {
             return null;
